@@ -1,0 +1,14 @@
+.{
+    .name = "zig-lz4",
+    .version = "0.0.1",
+    //.minimum_zig_version = "0.11.0",
+    .dependencies = .{
+        .lz4 = .{
+            .url = "https://github.com/lz4/lz4/archive/refs/tags/v1.9.4.tar.gz",
+            .hash = "1220a9e5107eca3349d0574dc01d6c270884052bbaf397d54b8458f22d57aaef9979",
+        }
+    },
+    .paths = .{
+        "",
+    },
+}
