@@ -271,51 +271,51 @@ pub const Encoder = struct {
         };
     }
 
-    fn setLevel(encoder : *Encoder, level : u32) *Encoder {
+    pub fn setLevel(encoder : *Encoder, level : u32) *Encoder {
         encoder.level = level;
         return encoder;
     }
 
-    fn setBlockSize(encoder : *Encoder, blockSize : Frame.BlockSize) *Encoder {
+    pub fn setBlockSize(encoder : *Encoder, blockSize : Frame.BlockSize) *Encoder {
         encoder.blockSize = blockSize;
         return encoder;
     }
 
-    fn setBlockMode(encoder : *Encoder, blockMode : Frame.BlockMode) *Encoder {
+    pub fn setBlockMode(encoder : *Encoder, blockMode : Frame.BlockMode) *Encoder {
         encoder.blockMode = blockMode;
         return encoder;
     }
 
-    fn setContentChecksum(encoder : *Encoder, contentChecksum : Frame.ContentChecksum) *Encoder {
+    pub fn setContentChecksum(encoder : *Encoder, contentChecksum : Frame.ContentChecksum) *Encoder {
         encoder.contentChecksum = contentChecksum;
         return encoder;
     }
 
-    fn setBlockChecksum(encoder : *Encoder, blockChecksum : Frame.BlockChecksum) *Encoder {
+    pub fn setBlockChecksum(encoder : *Encoder, blockChecksum : Frame.BlockChecksum) *Encoder {
         encoder.blockChecksum = blockChecksum;
         return encoder;
     }
 
-    fn setFrameType(encoder : *Encoder, frameType : Frame.FrameType) *Encoder {
+    pub fn setFrameType(encoder : *Encoder, frameType : Frame.FrameType) *Encoder {
         encoder.frameType = frameType;
         return encoder;
     }
 
-    fn setAutoFlush(encoder : *Encoder, autoFlush : bool) *Encoder {
+    pub fn setAutoFlush(encoder : *Encoder, autoFlush : bool) *Encoder {
         encoder.autoFlush = if (autoFlush) 1 else 0;
         return encoder;
     }
 
-    fn setFavorDecSpeed(encoder : *Encoder, favorDecSpeed : bool) *Encoder {
+    pub fn setFavorDecSpeed(encoder : *Encoder, favorDecSpeed : bool) *Encoder {
         encoder.favorDecSpeed = if (favorDecSpeed) 1 else 0;
         return encoder;
     }
 
-    fn deinit(encoder : Encoder) void {
+    pub fn deinit(encoder : *Encoder) void {
         Frame.freeCompressionContext(encoder.allocator, encoder.ctx);
     }
 
-    fn compressStream(encoder : *Encoder, streamWriter : std.io.AnyWriter, src : []const u8) !void {
+    pub fn compressStream(encoder : *Encoder, streamWriter : std.io.AnyWriter, src : []const u8) !void {
         const pref = Frame.Preferences{
             .compressionLevel = 0,
             .frameInfo = .{
@@ -352,7 +352,7 @@ pub const Encoder = struct {
         try streamWriter.writeAll(writer[0..endRes]);
     }
 
-    fn compress(encoder : *Encoder, src : []const u8) ![]const u8 {
+    pub fn compress(encoder : *Encoder, src : []const u8) ![]const u8 {
         const allocator = encoder.allocator;
       
         var buffStream = try ResizableBufferStream.init(allocator);
@@ -395,7 +395,7 @@ test "frame compression 112k sample" {
         _ = encoder.setLevel(16)
         .setContentChecksum(Frame.ContentChecksum.Enabled)
         .setBlockMode(Frame.BlockMode.Independent);
-    defer Encoder.deinit(encoder);
+    defer encoder.deinit();
 
     const compressed = try encoder.compress(sampleText);
     defer allocator.free(compressed);
@@ -414,7 +414,7 @@ test "frame compression 1k sample" {
         _ = encoder.setLevel(16)
         .setContentChecksum(Frame.ContentChecksum.Enabled)
         .setBlockMode(Frame.BlockMode.Independent);
-    defer Encoder.deinit(encoder);
+    defer encoder.deinit();
 
     const compressed = try encoder.compress(sampleText);
     defer allocator.free(compressed);
