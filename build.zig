@@ -3,6 +3,8 @@ const std = @import("std");
 const SOURCE_FILES = [_][]const u8{
     "lib/lz4.c",
     "lib/lz4frame.c",
+    "lib/lz4hc.c",
+    "lib/xxhash.c",
 };
 
 const HEADER_DIRS = [_][]const u8{
