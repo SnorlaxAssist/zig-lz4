@@ -28,7 +28,7 @@ jobs:
           version: 0.12.0
 
       - name: Setup Pages
-        uses: actions/configure-pages@v2
+        uses: actions/configure-pages@v5
       
       - name: Build docs
         run: zig build-lib src/lib.zig -fno-emit-bin -femit-docs=docs
