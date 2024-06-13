@@ -31,7 +31,7 @@ jobs:
         uses: actions/configure-pages@v5
       
       - name: Build docs
-        run: zig build-lib src/lib.zig -fno-emit-bin -femit-docs=docs
+        run: zig build docs
 
       - name: Archive artifact
         shell: sh

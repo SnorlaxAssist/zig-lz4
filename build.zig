@@ -57,4 +57,23 @@ pub fn build(b: *std.Build) void {
 
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_unit_tests.step);
+
+    // Docs
+    const docs_step = b.step("docs", "Build documentation");
+
+    const docs_obj = b.addObject(.{
+        .name = "docs",
+        .root_source_file = b.path(LIB_SRC),
+        .target = target,
+        .optimize = optimize,
+    });
+    docs_obj.linkLibrary(lib);
+    docs_obj.addIncludePath(lz4_dependency.path("lib"));
+
+    const install_docs = b.addInstallDirectory(.{
+        .source_dir = docs_obj.getEmittedDocs(),
+        .install_dir = .prefix,
+        .install_subdir = "../docs",
+    });
+    docs_step.dependOn(&install_docs.step);
 }
