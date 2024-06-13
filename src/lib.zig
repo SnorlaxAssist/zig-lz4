@@ -18,8 +18,6 @@ pub fn getVersionNumber() i32 {
     return @intCast(c.LZ4_versionNumber());
 }
 
-pub const lz4clib = c;
-
 pub const Standard = struct {
     const CompressionError = error {
         Failed,
