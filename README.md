@@ -1,6 +1,6 @@
 # zig-lz4
 
-![zig-version](https://img.shields.io/badge/dynamic/yaml?url=https%3A%2F%2Fraw.githubusercontent.com%2FSnorlaxAssist%2Fzig-lz4%2Fmaster%2F.github%2Fworkflows%2Ftests.yml&query=%24.jobs.tests.steps%5B1%5D.with.version&label=zig-version)
+![zig-version](https://img.shields.io/badge/dynamic/yaml?url=https%3A%2F%2Fraw.githubusercontent.com%2FSnorlaxAssist%2Fzig-lz4%2Fmaster%2F.github%2Fworkflows%2Ftests.yml&query=%24.jobs.test.steps%5B1%5D.with.version&label=zig-version)
 [![tests](https://github.com/SnorlaxAssist/zig-lz4/actions/workflows/tests.yml/badge.svg)](https://github.com/SnorlaxAssist/zig-lz4/actions/workflows/tests.yml)
 
 Unofficial Zig bindings for [LZ4](https://github.com/lz4/lz4).
