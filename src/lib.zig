@@ -7,7 +7,9 @@ const c = @cImport({
 
 const Allocator = std.mem.Allocator;
 
+/// 2113929216
 pub const MAX_INPUT_SIZE = c.LZ4_MAX_INPUT_SIZE;
+/// 20
 pub const MEMORY_USAGE_MAX = c.LZ4_MEMORY_USAGE_MAX;
 
 pub fn getVersion() []const u8 {
@@ -55,11 +57,10 @@ pub const Standard = struct {
         return try allocator.realloc(dest, compressedSize);
     }
 
-    pub fn decompress(allocator: Allocator, src: []const u8) ![]const u8 {
-        const destSize = MAX_INPUT_SIZE;
-        const dest = try allocator.alloc(u8, destSize);
+    pub fn decompress(allocator: Allocator, src: []const u8, szHint : usize) ![]const u8 {
+        const dest = try allocator.alloc(u8, szHint);
         errdefer allocator.free(dest);
-        const decompressedSize = try decompressSafe(src.ptr, src.len, dest.ptr, destSize);
+        const decompressedSize = try decompressSafe(src.ptr, src.len, dest.ptr, szHint);
         return try allocator.realloc(dest, decompressedSize);
     }
 };
@@ -200,18 +201,6 @@ pub const Frame = struct {
 };
 
 const INPUT_CHUNK_SIZE = 64 * 1024;
-
-fn writeBuffer(buffer : []u8, bytes : []const u8, pos : usize) !usize {
-    if (bytes.len == 0) return 0;
-    if (pos >= buffer.len) return error.NoSpaceLeft;
-
-    const n = bytes.len;
-    if (pos + n > buffer.len) return error.NoSpaceLeft;
-
-    @memcpy(buffer[pos..][0..n], bytes[0..n]);
-
-    return n;
-}
 
 const ResizableWriteError = error{NoSpaceLeft};
 const ResizableBufferStream = struct {
@@ -388,7 +377,7 @@ test "version" {
 }
 
 test "create compression context error OutOfMemory" {
-    const allocator = std.testing.failing_allocator;
+    const allocator = testing.failing_allocator;
     const ctxPtr = Frame.createCompressionContext(allocator, null) catch |err| {
         try testing.expectEqual(error.OutOfMemory, err);
         return;
@@ -398,7 +387,7 @@ test "create compression context error OutOfMemory" {
 }
 
 test "frame compression 112k sample" {
-    const allocator = std.testing.allocator;
+    const allocator = testing.allocator;
     const sampleText = try std.fs.cwd().readFileAlloc(allocator, "./files/112k-sample.txt", std.math.maxInt(usize));
     defer allocator.free(sampleText);
 
@@ -417,7 +406,7 @@ test "frame compression 112k sample" {
 }
 
 test "frame compression 1k sample" {
-    const allocator = std.testing.allocator;
+    const allocator = testing.allocator;
     const sampleText = try std.fs.cwd().readFileAlloc(allocator, "./files/1k-sample.txt", std.math.maxInt(usize));
     defer allocator.free(sampleText);
 
@@ -436,12 +425,9 @@ test "frame compression 1k sample" {
 }
 
 test "standard compression & decompression" {
-    const sample = 
-        \\
-        \\Lorem ipsum dolor sit amet, consectetur adipiscing elit
-    ;
-    
-    const allocator = std.testing.allocator;
+    const sample = "\nLorem ipsum dolor sit amet, consectetur adipiscing elit";
+
+    const allocator = testing.allocator;
     const compressed = try Standard.compress(allocator, sample);
     defer allocator.free(compressed);
 
@@ -450,7 +436,7 @@ test "standard compression & decompression" {
 
     try testing.expectEqualStrings(expectedCompressed, compressed);
 
-    const decompressed = try Standard.decompress(allocator, compressed);
+    const decompressed = try Standard.decompress(allocator, compressed, sample.len);
     defer allocator.free(decompressed);
 
     try testing.expectEqualStrings(sample, decompressed);
