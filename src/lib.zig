@@ -1,5 +1,6 @@
 const std = @import("std");
 
+/// LZ4 C API
 const c = @cImport({
     @cInclude("lz4.h");
     @cInclude("lz4frame.h");
@@ -7,7 +8,9 @@ const c = @cImport({
 
 const Allocator = std.mem.Allocator;
 
-/// 2113929216
+pub const lz4clib = c;
+
+/// 2113929216(0x7E000000)
 pub const MAX_INPUT_SIZE = c.LZ4_MAX_INPUT_SIZE;
 /// 20
 pub const MEMORY_USAGE_MAX = c.LZ4_MEMORY_USAGE_MAX;
@@ -66,9 +69,11 @@ pub const Standard = struct {
 };
 
 pub const Frame = struct {
-    pub const Context = c.LZ4F_cctx;
+    pub const CompressionContext = c.LZ4F_cctx;
+    pub const DecompressionContext = c.LZ4F_dctx;
     pub const Preferences = c.LZ4F_preferences_t;
     pub const CompressOptions = c.LZ4F_compressOptions_t;
+    pub const DecompressOptions = c.LZ4F_decompressOptions_t;
 
     pub const Error = error {
         Generic,
@@ -160,7 +165,7 @@ pub const Frame = struct {
         return c.LZ4F_compressBound(@intCast(size), pref);
     }
 
-    pub fn compressBegin(ctx: *Context, dstBuffer : [*]u8, dstCapacity: usize, prefsPtr : ?*const Preferences) !usize {
+    pub fn compressBegin(ctx: *CompressionContext, dstBuffer : [*]u8, dstCapacity: usize, prefsPtr : ?*const Preferences) !usize {
         const res = c.LZ4F_compressBegin(ctx, @ptrCast(dstBuffer), dstCapacity, prefsPtr);
         if (c.LZ4F_isError(res) != 0) {
             try doError(res);
@@ -168,7 +173,7 @@ pub const Frame = struct {
         return res;
     }
     
-    pub fn compressUpdate(ctx: *Context, dstBuffer : [*]u8, dstCapacity: usize, srcBuffer : [*]const u8, srcSize: usize, cOptionsPtr : ?*const CompressOptions) !usize {
+    pub fn compressUpdate(ctx: *CompressionContext, dstBuffer : [*]u8, dstCapacity: usize, srcBuffer : [*]const u8, srcSize: usize, cOptionsPtr : ?*const CompressOptions) !usize {
         const res = c.LZ4F_compressUpdate(ctx, @ptrCast(dstBuffer), dstCapacity, @ptrCast(srcBuffer), srcSize, cOptionsPtr);
         if (c.LZ4F_isError(res) != 0) {
             try doError(res);
@@ -176,7 +181,7 @@ pub const Frame = struct {
         return res;
     }
 
-    pub fn compressEnd(ctx: *Context, dstBuffer : [*]u8, dstCapacity: usize, cOptionsPtr : ?*const CompressOptions) !usize {
+    pub fn compressEnd(ctx: *CompressionContext, dstBuffer : [*]u8, dstCapacity: usize, cOptionsPtr : ?*const CompressOptions) !usize {
         const res = c.LZ4F_compressEnd(ctx, @ptrCast(dstBuffer), dstCapacity, cOptionsPtr);
         if (c.LZ4F_isError(res) != 0) {
             try doError(res);
@@ -184,8 +189,8 @@ pub const Frame = struct {
         return res;
     }
 
-    pub fn createCompressionContext(allocator: Allocator, versionNumber : ?i32) !**c.LZ4F_cctx {
-        const ctxPtr = try allocator.create(*c.LZ4F_cctx);
+    pub fn createCompressionContext(allocator: Allocator, versionNumber : ?i32) !**CompressionContext {
+        const ctxPtr = try allocator.create(*CompressionContext);
         errdefer allocator.destroy(ctxPtr);
         const res = c.LZ4F_createCompressionContext(@ptrCast(ctxPtr), @intCast(versionNumber orelse getVersionNumber()));
         if (res != 0) {
@@ -194,7 +199,32 @@ pub const Frame = struct {
         return ctxPtr;
     }
 
-    pub fn freeCompressionContext(allocator: Allocator, ctx: **c.LZ4F_cctx) void {
+    pub fn decompress(ctx: *DecompressionContext, dstBuffer : [*]u8, dstCapacity: usize, srcBuffer : [*]const u8, srcSize: usize, dOptionsPtr : ?*const DecompressOptions) !usize {
+        var srcSizeMutable = srcSize;
+        var dstCapacityMutable = dstCapacity;
+        const res = c.LZ4F_decompress(ctx, @ptrCast(dstBuffer), @ptrCast(&dstCapacityMutable), @ptrCast(srcBuffer), @ptrCast(&srcSizeMutable), dOptionsPtr);
+        if (c.LZ4F_isError(res) != 0) {
+            try doError(res);
+        }
+        return res;
+    }
+
+    pub fn createDecompressionContext(allocator: Allocator, versionNumber : ?i32) !**DecompressionContext {
+        const ctxPtr = try allocator.create(*DecompressionContext);
+        errdefer allocator.destroy(ctxPtr);
+        const res = c.LZ4F_createDecompressionContext(@ptrCast(ctxPtr), @intCast(versionNumber orelse getVersionNumber()));
+        if (res != 0) {
+            try doError(res);
+        }
+        return ctxPtr;
+    }
+
+    pub fn freeDecompressionContext(allocator: Allocator, ctx: **DecompressionContext) void {
+        _ = c.LZ4F_freeDecompressionContext(ctx.*);
+        allocator.destroy(ctx);
+    }
+
+    pub fn freeCompressionContext(allocator: Allocator, ctx: **CompressionContext) void {
         _ = c.LZ4F_freeCompressionContext(ctx.*);
         allocator.destroy(ctx);
     }
@@ -251,7 +281,7 @@ const ResizableBufferStream = struct {
 
 pub const Encoder = struct {
     allocator : Allocator = undefined,
-    ctx : **c.LZ4F_cctx = undefined,
+    ctx : **Frame.CompressionContext = undefined,
     writer : []u8 = undefined,
 
     level : u32 = 0,
@@ -269,6 +299,10 @@ pub const Encoder = struct {
             .allocator = alloc,
             .ctx = ctxPtr,
         };
+    }
+
+    pub fn deinit(encoder : *Encoder) void {
+        Frame.freeCompressionContext(encoder.allocator, encoder.ctx);
     }
 
     pub fn setLevel(encoder : *Encoder, level : u32) *Encoder {
@@ -309,10 +343,6 @@ pub const Encoder = struct {
     pub fn setFavorDecSpeed(encoder : *Encoder, favorDecSpeed : bool) *Encoder {
         encoder.favorDecSpeed = if (favorDecSpeed) 1 else 0;
         return encoder;
-    }
-
-    pub fn deinit(encoder : *Encoder) void {
-        Frame.freeCompressionContext(encoder.allocator, encoder.ctx);
     }
 
     pub fn compressStream(encoder : *Encoder, streamWriter : std.io.AnyWriter, src : []const u8) !void {
@@ -365,9 +395,40 @@ pub const Encoder = struct {
     }
 };
 
-// TODO: write Frame decoder and tests
 pub const Decoder = struct {
-    
+    allocator : Allocator = undefined,
+    ctx : **Frame.DecompressionContext = undefined,
+    pub fn init(alloc : Allocator) !Decoder {
+        const ctxPtr = try Frame.createDecompressionContext(alloc, null);
+        return .{
+            .allocator = alloc,
+            .ctx = ctxPtr,
+        };
+    }
+
+    pub fn deinit(decoder : *Decoder) void {
+        Frame.freeDecompressionContext(decoder.allocator, decoder.ctx);
+    }
+
+    pub fn decompress(decoder : *Decoder, src : []const u8, dstSize : usize) ![]const u8 {
+        const ctx = decoder.ctx.*;
+        const dest = try decoder.allocator.alloc(u8, dstSize);
+        errdefer decoder.allocator.free(dest);
+        const srcLen = src.len;
+
+        var dstOffset : usize = 0;
+        var srcOffset : usize = 0;
+        while (dstOffset < dstSize and srcOffset < srcLen) {
+            const readSrcSize = srcLen - srcOffset;
+            const incrDstSize = dstSize - dstOffset;
+            const updateLen = try Frame.decompress(ctx, dest[dstOffset..].ptr, dstSize, src[srcOffset..].ptr, readSrcSize, null);
+            if (updateLen == 0) break;
+            dstOffset += incrDstSize;
+            srcOffset += readSrcSize;
+        }
+
+        return dest;
+    }
 };
 
 const testing = std.testing;
@@ -386,11 +447,22 @@ test "create compression context error OutOfMemory" {
     @panic("expected error");
 }
 
-test "frame compression 112k sample" {
+test "create decompression context error OutOfMemory" {
+    const allocator = testing.failing_allocator;
+    const ctxPtr = Frame.createDecompressionContext(allocator, null) catch |err| {
+        try testing.expectEqual(error.OutOfMemory, err);
+        return;
+    };
+    Frame.freeDecompressionContext(allocator, ctxPtr);
+    @panic("expected error");
+}
+
+test "frame compression & decompression 112k sample" {
     const allocator = testing.allocator;
     const sampleText = try std.fs.cwd().readFileAlloc(allocator, "./files/112k-sample.txt", std.math.maxInt(usize));
     defer allocator.free(sampleText);
 
+    // Compression
     var encoder = try Encoder.init(allocator);
         _ = encoder.setLevel(16)
         .setContentChecksum(Frame.ContentChecksum.Enabled)
@@ -403,13 +475,22 @@ test "frame compression 112k sample" {
     const expectedCompressed = try std.fs.cwd().readFileAlloc(allocator, "./files/112k-compressed-expected.txt", std.math.maxInt(usize));
     defer allocator.free(expectedCompressed);
     try testing.expectEqualStrings(expectedCompressed, compressed);
+
+    // Decompression
+    var decoder = try Decoder.init(allocator);
+    defer decoder.deinit();
+
+    const decompressed = try decoder.decompress(compressed, sampleText.len);
+    defer allocator.free(decompressed);
+    try testing.expectEqualStrings(sampleText, decompressed);
 }
 
-test "frame compression 1k sample" {
+test "frame compression & decompression 1k sample" {
     const allocator = testing.allocator;
     const sampleText = try std.fs.cwd().readFileAlloc(allocator, "./files/1k-sample.txt", std.math.maxInt(usize));
     defer allocator.free(sampleText);
 
+    // Compression
     var encoder = try Encoder.init(allocator);
         _ = encoder.setLevel(16)
         .setContentChecksum(Frame.ContentChecksum.Enabled)
@@ -422,12 +503,21 @@ test "frame compression 1k sample" {
     const expectedCompressed = try std.fs.cwd().readFileAlloc(allocator, "./files/1k-compressed-expected.txt", std.math.maxInt(usize));
     defer allocator.free(expectedCompressed);
     try testing.expectEqualStrings(expectedCompressed, compressed);
+
+    // Decompression
+    var decoder = try Decoder.init(allocator);
+    defer decoder.deinit();
+
+    const decompressed = try decoder.decompress(compressed, sampleText.len);
+    defer allocator.free(decompressed);
+    try testing.expectEqualStrings(sampleText, decompressed);
 }
 
 test "standard compression & decompression" {
+    const allocator = testing.allocator;
     const sample = "\nLorem ipsum dolor sit amet, consectetur adipiscing elit";
 
-    const allocator = testing.allocator;
+    // Compression
     const compressed = try Standard.compress(allocator, sample);
     defer allocator.free(compressed);
 
@@ -436,6 +526,7 @@ test "standard compression & decompression" {
 
     try testing.expectEqualStrings(expectedCompressed, compressed);
 
+    // Decompression
     const decompressed = try Standard.decompress(allocator, compressed, sample.len);
     defer allocator.free(decompressed);
 
