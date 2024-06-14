@@ -67,14 +67,14 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    
+
     docs_obj.linkLibrary(lib);
     docs_obj.addIncludePath(lz4_dependency.path("lib"));
 
     const install_docs = b.addInstallDirectory(.{
         .source_dir = docs_obj.getEmittedDocs(),
         .install_dir = .prefix,
-        .install_subdir = "../docs",
+        .install_subdir = "docs",
     });
     docs_step.dependOn(&install_docs.step);
 }

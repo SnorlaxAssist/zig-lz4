@@ -39,7 +39,7 @@ jobs:
           echo ::group::Archive artifact
           tar \
             --dereference --hard-dereference \
-            --directory "docs" \
+            --directory "zig-out/docs" \
             -cvf "$RUNNER_TEMP/docs-artifact.tar" \
             --exclude=.git \
             --exclude=.github \
