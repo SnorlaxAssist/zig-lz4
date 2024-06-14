@@ -8,8 +8,8 @@ Unofficial Zig bindings for [LZ4](https://github.com/lz4/lz4).
 ## Features
 - LZ4 & LZ4Frame Compression
 - LZ4 & LZ4Frame Decompression
-- [Encoder](https://snorlaxassist.github.io/zig-lz4/#zig-lz4.Encoder) (based on LZ4Frame)
-- [Decoder](https://snorlaxassist.github.io/zig-lz4/#zig-lz4.Encoder) (based on LZ4Frame)
+- [Encoder](https://snorlaxassist.github.io/zig-lz4/#docs.Encoder) (based on LZ4Frame)
+- [Decoder](https://snorlaxassist.github.io/zig-lz4/#docs.Encoder) (based on LZ4Frame)
 
 ## Installation
 1. Add dependency to `build.zig.zon`
@@ -30,7 +30,7 @@ exe.addModule("lz4", ziglz4.module("zig-lz4"));
 
 ## Examples
 
-### File [Encoder](https://snorlaxassist.github.io/zig-lz4/#zig-lz4.Encoder)
+### File [Encoder](https://snorlaxassist.github.io/zig-lz4/#docs.Encoder)
 ```zig
 const std = @import("std");
 
@@ -63,7 +63,7 @@ const sizeHintHeader : [4]u8 = @bitCast(@as(u32, @intCast(input.len)));
 try std.fs.cwd().writeFile("compressedFile", fileOutput);
 ```
 
-### File [Decoder](https://snorlaxassist.github.io/zig-lz4/#zig-lz4.Encoder)
+### File [Decoder](https://snorlaxassist.github.io/zig-lz4/#docs.Encoder)
 ```zig
 const std = @import("std");
 
@@ -85,7 +85,7 @@ defer allocator.free(decompressed);
 std.debug.print("Decompressed: {s}\n", .{decompressed});
 ```
 
-### Simple [Compression & Decompression](https://snorlaxassist.github.io/zig-lz4/#zig-lz4.Standard)
+### Simple [Compression & Decompression](https://snorlaxassist.github.io/zig-lz4/#docs.Standard)
 ```zig
 const std = @import("std");
 
