@@ -3,3 +3,4 @@
 
 # Use LF
 files/**/*.txt eol=lf
+*.zig text eol=lf
