@@ -20,11 +20,17 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const lib = b.addStaticLibrary(.{
-        .name = "zig-lz4",
+        .name = "lz4",
         .root_source_file = b.path(LIB_SRC),
         .target = target,
         .optimize = optimize,
     });
+
+    const lz4_module = b.addModule("zig-lz4", .{
+        .root_source_file = b.path("src/lib.zig"),
+    });
+
+    lz4_module.linkLibrary(lib);
 
     const FLAGS = [_][]const u8{
         "-DLZ4LIB_API=extern\"C\"",
