@@ -347,7 +347,7 @@ pub const Encoder = struct {
 
     pub fn compressStream(encoder : *Encoder, streamWriter : std.io.AnyWriter, src : []const u8) !void {
         const pref = Frame.Preferences{
-            .compressionLevel = 0,
+            .compressionLevel = encoder.level,
             .frameInfo = .{
                 .blockSizeID = @intFromEnum(encoder.blockSize),
                 .blockMode = @intFromEnum(encoder.blockMode),
