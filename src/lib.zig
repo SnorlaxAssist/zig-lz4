@@ -464,7 +464,7 @@ test "frame compression & decompression 112k sample" {
 
     // Compression
     var encoder = try Encoder.init(allocator);
-        _ = encoder.setLevel(16)
+        _ = encoder.setLevel(0)
         .setContentChecksum(Frame.ContentChecksum.Enabled)
         .setBlockMode(Frame.BlockMode.Independent);
     defer encoder.deinit();
@@ -492,7 +492,7 @@ test "frame compression & decompression 1k sample" {
 
     // Compression
     var encoder = try Encoder.init(allocator);
-        _ = encoder.setLevel(16)
+        _ = encoder.setLevel(0)
         .setContentChecksum(Frame.ContentChecksum.Enabled)
         .setBlockMode(Frame.BlockMode.Independent);
     defer encoder.deinit();
